@@ -14,11 +14,21 @@
 //! `pages-build-deployment` action for GitHub pages. It depends on the RSS feed being up-to-date at the time
 //! of running, so you may need to introduce a delay.
 
+use std::ops::Deref;
 use std::time::Duration;
 
 use feed_rs::parser::parse;
 use octocrab::Octocrab;
-use reqwest::Client;
+
+use reqwest::{Client};
+use scraper::{Html, Selector};
+use url::Url;
+
+const BASE_URL: &str = "https://team-role-org-testing.github.io";
+const FEED_PATH: &str = "/feed.xml";
+const REPO_OWNER: &str = "team-role-org-testing";
+const REPO_NAME: &str = "team-role-org-testing.github.io";
+const CATEGORY_NAME: &str = "Blogs";
 
 #[tokio::main]
 pub async fn main() {
@@ -33,7 +43,10 @@ pub async fn main() {
         .build()
         .expect("Unable to build HTTP client");
 
-    let post_url = latest_post(&client).await;
+    let post_url = latest_post(&client).await.unwrap();
+    let post_desc = post_description(&client, post_url.as_str()).await.unwrap();
+    let request = create_graphql_request(&octocrab, &post_url, &post_desc);
+    todo!()
 
     // TODO:
     //   - Strip to the part of the URL that becomes the
@@ -41,16 +54,55 @@ pub async fn main() {
     //   - add link to body of request
 }
 
-async fn latest_post(rss_client: &Client) -> String {
-    let feed = rss_client
-        .get("https://team-role-org-testing.github.io/feed.xml") // https://www.wildfly.org/feed.xml
-        .send().await.unwrap()
-        .bytes().await.unwrap();
+async fn latest_post(rss_client: &Client) -> reqwest::Result<Url> {
+    let rss_response = rss_client
+        .get(format!("{BASE_URL}{FEED_PATH}")) // https://www.wildfly.org/feed.xml
+        .send()
+        .await?
+        .bytes()
+        .await?;
+    let parsed_feed =
+        parse(rss_response.deref()).expect("Unable to parse team-role-org-testing feed");
+    let post = parsed_feed.entries.first().expect("No posts found in feed");
 
-    let posts = parse(&feed[..]).expect("Unable to parse team-role-org-testing feed");
+    Ok(Url::parse(
+        post.links
+            .first()
+            .expect("No link provided with first post")
+            .href
+            .as_str(),
+    )
+    .unwrap())
+}
 
-    posts
-        .entries.first().expect("No posts found in feed")
-        .links.first().expect("No link provided with first post")
-        .href.clone()
+async fn post_description(client: &Client, post_url: &str) -> reqwest::Result<String> {
+    let desc_selector = Selector::parse("meta[name=\"description\"]").unwrap();
+    let post = Html::parse_document(&client.get(post_url).send().await?.text().await?);
+
+    let desc_element = post
+        .select(&desc_selector)
+        .next()
+        .expect("Could not find 'meta' element with name 'description'");
+
+    Ok(desc_element
+        .value()
+        .attr("content")
+        .expect("Invalid formatting for 'name' meta tag")
+        .to_string())
+}
+
+async fn create_graphql_request(octocrab: &Octocrab, url: &Url, description: &String) -> octocrab::Result<String> {
+    let repo_id = octocrab.repos(REPO_OWNER, REPO_NAME)
+        .get().await?.id;
+    let category_id = octocrab.graphql(&format!("\
+query {{
+  repository(owner:\"{REPO_OWNER}\", name:\"{REPO_NAME}\") {{
+    discussionCategories(
+}}"))
+
+    let gql = format!("\
+mutation {{
+    createDiscussion(input: {{repositoryId: {repo_id},
+}}");
+    todo!()
 }
