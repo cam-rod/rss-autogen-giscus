@@ -1,4 +1,5 @@
 use std::ops::Deref;
+
 use feed_rs::parser::parse;
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -6,8 +7,8 @@ use url::Url;
 
 use crate::constants::{BASE_URL, FEED_PATH};
 
-pub async fn latest_post(rss_client: &Client) -> reqwest::Result<Url> {
-    let rss_response = rss_client
+pub async fn latest_post(client: &Client) -> reqwest::Result<Url> {
+    let rss_response = client
         .get(format!("{BASE_URL}{FEED_PATH}")) // https://www.wildfly.org/feed.xml
         .send()
         .await?
@@ -24,7 +25,7 @@ pub async fn latest_post(rss_client: &Client) -> reqwest::Result<Url> {
             .href
             .as_str(),
     )
-        .unwrap())
+    .unwrap())
 }
 
 pub async fn post_description(client: &Client, post_url: &str) -> reqwest::Result<String> {

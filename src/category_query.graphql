@@ -1,0 +1,15 @@
+query CategoryQuery($owner: String!, $repoName: String!) {
+    repository(owner: $owner, name: $repoName) {
+        discussionCategories(first: 20) {
+            edges {
+                node {
+                    name
+                    id
+                }
+            }
+            pageInfo {
+                endCursor
+            }
+        }
+    }
+}
