@@ -7,8 +7,8 @@ use url::Url;
 
 use crate::constants::{BASE_URL, FEED_PATH};
 
-pub async fn latest_post(client: &Client) -> reqwest::Result<Url> {
-    let rss_response = client
+pub async fn latest_post(html_client: &Client) -> reqwest::Result<Url> {
+    let rss_response = html_client
         .get(format!("{BASE_URL}{FEED_PATH}")) // https://www.wildfly.org/feed.xml
         .send()
         .await?
@@ -28,9 +28,9 @@ pub async fn latest_post(client: &Client) -> reqwest::Result<Url> {
     .unwrap())
 }
 
-pub async fn post_description(client: &Client, post_url: &str) -> reqwest::Result<String> {
+pub async fn post_description(html_client: &Client, post_url: &str) -> reqwest::Result<String> {
     let desc_selector = Selector::parse("meta[name=\"description\"]").unwrap();
-    let post = Html::parse_document(&client.get(post_url).send().await?.text().await?);
+    let post = Html::parse_document(&html_client.get(post_url).send().await?.text().await?);
 
     let desc_element = post
         .select(&desc_selector)

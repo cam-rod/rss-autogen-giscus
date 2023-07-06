@@ -22,26 +22,30 @@ use std::time::Duration;
 
 use gql::create_graphql_request;
 use post::{latest_post, post_description};
-use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION};
+use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION, HeaderValue};
 use reqwest::Client;
 
 #[tokio::main]
 pub async fn main() {
     let token = std::env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN env var is required");
-    let gh_headers = HeaderMap::from_iter(vec![
-        (AUTHORIZATION, token),
-        (ACCEPT, String::from("application/vnd.github+json")),
-    ]);
+    let mut gh_headers = HeaderMap::new();
+    gh_headers.insert(AUTHORIZATION, HeaderValue::from_str(&token).unwrap());
+    gh_headers.insert(ACCEPT, HeaderValue::from_static("application/vnd.github+json"));
 
-    let client = Client::builder()
+    let html_client = Client::builder()
         .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) rss-autogen-giscus/0.1.0 Chrome/113.0.0.0 Safari/537.36")
         .timeout(Duration::from_secs(60))
         .build()
-        .expect("Unable to build reqwest client");
+        .expect("Unable to build REST client");
+    let gql_client = Client::builder()
+        .timeout(Duration::from_secs(60))
+        .default_headers(gh_headers)
+        .build().
+        expect("Unable to build GraphQL client");
 
-    let post_url = latest_post(&client).await.unwrap();
-    let post_desc = post_description(&client, post_url.as_str()).await.unwrap();
-    let request = create_graphql_request(&client, &gh_headers, &post_url, &post_desc)
+    let post_url = latest_post(&html_client).await.unwrap();
+    let post_desc = post_description(&html_client, post_url.as_str()).await.unwrap();
+    let request = create_graphql_request(&gql_client, &post_url, post_desc)
         .await
         .unwrap();
 

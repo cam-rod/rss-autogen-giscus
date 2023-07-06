@@ -1,0 +1,10 @@
+mutation CreateCommentsDiscussion($repoId: ID!, $catID: ID!, $relPath: String!, $desc: String!) {
+    createDiscussion(input: {repositoryId: $repoId, categoryId: $catID, title: $relPath, body: $desc}) {
+        discussion {
+            id
+            title
+            createdAt
+            url
+        }
+    }
+}
