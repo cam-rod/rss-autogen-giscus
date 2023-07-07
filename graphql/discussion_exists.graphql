@@ -1,0 +1,16 @@
+query DiscussionExists($owner: String!, $repoName: String!) {
+    repository(owner: $owner, name: $repoName) {
+        discussions(orderBy: {field: CREATED_AT, direction: DESC}, first: 50) {
+            edges {
+                node {
+                    id
+                    title
+                    createdAt
+                }
+            }
+            pageInfo {
+                endCursor
+            }
+        }
+    }
+}

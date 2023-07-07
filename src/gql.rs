@@ -11,6 +11,7 @@ use crate::gql_structs::{
     CreateCommentsDiscussionVariables,
 };
 
+// TODO: actually make these commands go through each page
 pub async fn create_graphql_request(
     gql_client: &Client,
     url: &Url,
@@ -75,6 +76,6 @@ async fn get_category_id(gql_client: &Client) -> Result<cynic::Id, Box<dyn Error
     }
 }
 
-pub async fn discussion_exists() -> bool {
-    todo!()
+pub async fn discussion_exists(gql_client: &Client, url: &Url) -> bool {
+
 }

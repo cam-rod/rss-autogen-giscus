@@ -89,3 +89,51 @@ impl From<Uri> for String {
         value.0
     }
 }
+
+// query DiscussionExists
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct DiscussionExistsVariables<'a> {
+    pub owner: &'a str,
+    pub repo_name: &'a str,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Query", variables = "DiscussionExistsVariables")]
+pub struct DiscussionExists {
+    #[arguments(owner: $owner, name: $repo_name)]
+    pub repository: Option<Repository>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Repository {
+    #[arguments(orderBy: { direction: "DESC", field: "CREATED_AT" }, first: 50)]
+    pub discussions: DiscussionConnection,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct DiscussionConnection {
+    pub edges: Option<Vec<Option<DiscussionEdge>>>,
+    pub page_info: PageInfo,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct PageInfo {
+    pub end_cursor: Option<String>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct DiscussionEdge {
+    pub node: Option<Discussion>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Discussion {
+    pub id: cynic::Id,
+    pub title: String,
+    pub created_at: DateTime,
+}
+
+#[derive(cynic::Scalar, Debug, Clone)]
+pub struct DateTime(pub String);
+
