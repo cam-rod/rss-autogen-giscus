@@ -24,15 +24,17 @@ pub async fn create_graphql_request(
     desc: String,
 ) -> Result<Operation<CreateCommentsDiscussion, CreateCommentsDiscussionVariables>, Box<dyn Error>>
 {
-    let repo_id = get_repo_id(&clients).await?;
-    let cat_id = get_category_id(&clients).await?;
+    let repo_id = get_repo_id(clients).await?;
+    let cat_id = get_category_id(clients).await?;
+
+    let full_desc = desc + "\n\n" + url.as_str();
 
     Ok(CreateCommentsDiscussion::build(
         CreateCommentsDiscussionVariables {
             repo_id,
             cat_id,
-            desc,
-            rel_path: url.path().to_string(),
+            desc: full_desc,
+            post_rel_path: url.path().to_string(),
         },
     ))
 }

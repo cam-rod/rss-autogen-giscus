@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use feed_rs::parser::parse;
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -14,7 +16,7 @@ pub async fn latest_post(clients: &HttpClients) -> reqwest::Result<Url> {
         .bytes()
         .await?;
     let parsed_feed =
-        parse(*rss_response).expect("Unable to parse team-role-org-testing feed");
+        parse(rss_response.deref()).expect("Unable to parse team-role-org-testing feed");
     let post = parsed_feed.entries.first().expect("No posts found in feed");
 
     Ok(Url::parse(

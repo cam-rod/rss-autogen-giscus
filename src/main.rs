@@ -16,10 +16,9 @@
 
 use std::error::Error;
 
-use gql::create_graphql_request;
-use crate::post::{latest_post, post_description};
-use rss_autogen_giscus::{create_clients, create_discussion};
-use crate::gql::discussion_exists;
+use rss_autogen_giscus::{
+    create_clients, create_discussion, discussion_exists, latest_post, post_description,
+};
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn Error>> {
@@ -30,9 +29,9 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .unwrap();
 
-    if discussion_exists(&clients, &post_url) {
+    if discussion_exists(&clients, &post_url).await {
         panic!("Discussion was not created for {post_url}.")
     } else {
-        create_discussion(&clients, post_url, post_desc)
+        create_discussion(&clients, post_url, post_desc).await
     }
 }

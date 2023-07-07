@@ -1,12 +1,15 @@
-use cynic::http::ReqwestExt;
 use std::env;
 use std::error::Error;
 use std::time::Duration;
 
-use crate::gql::create_graphql_request;
+use cynic::http::ReqwestExt;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION};
 use reqwest::Client;
 use url::Url;
+
+use gql::create_graphql_request;
+pub use gql::discussion_exists;
+pub use post::{latest_post, post_description};
 
 mod gql;
 mod post;
@@ -14,10 +17,10 @@ mod post;
 pub struct HttpClients {
     pub html: Client,
     pub gql: Client,
-    pub website_rss_url: Url,
+    pub website_rss_url: String,
 
-    pub github_rest_url: Url,
-    pub github_gql_url: Url,
+    pub github_rest_url: String,
+    pub github_gql_url: String,
     pub discussion_category: String,
     pub repo_owner: String,
     pub repo_name: String,
@@ -43,11 +46,11 @@ pub fn create_clients() -> HttpClients {
             .default_headers(gh_headers)
             .build()
             .expect("Unable to build GraphQL client"),
-        // https://team-role-org-testing.github.io/feed.xml, repo team-role-org-testing/team-role-org-testing.github.io, category Blogs
-        website_rss_url: env::var("WEBSITE_RSS_URL").expect("WEBSITE_BASE_URL env var is required").parse().expect("Invalid WEBSITE_BASE_URL provided"),
+        // https://team-role-org-testing.github.io/feed.xml, category Blogs
+        website_rss_url: env::var("WEBSITE_RSS_URL").expect("WEBSITE_BASE_URL env var is required"),
 
-        github_rest_url: env::var("GITHUB_API_URl").unwrap_or("https://api.github.com".to_string()).parse().unwrap(),
-        github_gql_url: env::var("GITHUB_GRAPHQL_URL").unwrap_or("https://api.github.com/graphql".to_string()).parse().unwrap(),
+        github_rest_url: env::var("GITHUB_API_URl").unwrap_or("https://api.github.com".to_string()),
+        github_gql_url: env::var("GITHUB_GRAPHQL_URL").unwrap_or("https://api.github.com/graphql".to_string()),
         discussion_category: env::var("DISCUSSION_CATEGORY").expect("DISCUSSION_CATEGORY env var is required"),
         repo_owner: env::var("GITHUB_REPOSITORY_OWNER").expect("Repo owner was not found (GITHUB_REPOSITORY_OWNER)"),
         repo_name: env::var("GITHUB_REPOSITORY").unwrap().split_once('/').expect("Not a valid repo/name string").1.into()
@@ -59,7 +62,7 @@ pub async fn create_discussion(
     post_url: Url,
     post_desc: String,
 ) -> Result<(), Box<dyn Error>> {
-    let create_disc_vars = create_graphql_request(&clients, &post_url, post_desc)
+    let create_disc_vars = create_graphql_request(clients, &post_url, post_desc)
         .await
         .unwrap();
     let create_disc_resp = clients
@@ -80,7 +83,7 @@ pub async fn create_discussion(
         }
     } else {
         panic!(
-            "Dicussion could not be generated. GraphQL response: \n{:#?}",
+            "Discussion could not be generated. GraphQL response: \n{:#?}",
             create_disc_resp.errors
         );
     }

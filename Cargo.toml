@@ -7,7 +7,7 @@ license = "Apache-2.0"
 description = "A small program to autogenerate GitHub Discussions from Atom/RSS feeds."
 
 [dependencies]
-cynic = { version = "3", features = ["http-reqwest"] }
+cynic = { version = "3", features = ["http-reqwest", "rkyv"] }
 feed-rs = "~1.3"
 graphql_client = { version = "~0.13", features = ["reqwest"] }
 reqwest = { version = "~0.11", features = ["json"] }
