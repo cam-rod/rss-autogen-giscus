@@ -1,21 +1,20 @@
-use std::ops::Deref;
-
 use feed_rs::parser::parse;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use url::Url;
 
-use crate::constants::{BASE_URL, FEED_PATH};
+use super::HttpClients;
 
-pub async fn latest_post(html_client: &Client) -> reqwest::Result<Url> {
-    let rss_response = html_client
-        .get(format!("{BASE_URL}{FEED_PATH}")) // https://www.wildfly.org/feed.xml
+pub async fn latest_post(clients: &HttpClients) -> reqwest::Result<Url> {
+    let rss_response = clients
+        .html
+        .get(&clients.website_rss_url) // https://www.wildfly.org/feed.xml
         .send()
         .await?
         .bytes()
         .await?;
     let parsed_feed =
-        parse(rss_response.deref()).expect("Unable to parse team-role-org-testing feed");
+        parse(*rss_response).expect("Unable to parse team-role-org-testing feed");
     let post = parsed_feed.entries.first().expect("No posts found in feed");
 
     Ok(Url::parse(

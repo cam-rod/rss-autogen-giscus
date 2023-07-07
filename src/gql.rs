@@ -1,25 +1,31 @@
 use std::error::Error;
 
 use cynic::{http::ReqwestExt, MutationBuilder, Operation, QueryBuilder};
-use reqwest::Client;
 use serde_json::Value;
 use url::Url;
 
-use crate::constants::{CATEGORY_NAME, GITHUB_GQL_API, REPO_NAME, REPO_OWNER};
-use crate::gql_structs::{
+use gql_structs::{
     CategoryQuery, CategoryQueryVariables, CreateCommentsDiscussion,
     CreateCommentsDiscussionVariables,
 };
 
+use super::HttpClients;
+
+mod gql_structs;
+
+pub async fn discussion_exists(clients: &HttpClients, post_url: &Url) -> bool {
+    todo!()
+}
+
 // TODO: actually make these commands go through each page
 pub async fn create_graphql_request(
-    gql_client: &Client,
+    clients: &HttpClients,
     url: &Url,
     desc: String,
 ) -> Result<Operation<CreateCommentsDiscussion, CreateCommentsDiscussionVariables>, Box<dyn Error>>
 {
-    let repo_id = get_repo_id(gql_client).await?;
-    let cat_id = get_category_id(gql_client).await?;
+    let repo_id = get_repo_id(&clients).await?;
+    let cat_id = get_category_id(&clients).await?;
 
     Ok(CreateCommentsDiscussion::build(
         CreateCommentsDiscussionVariables {
@@ -31,10 +37,12 @@ pub async fn create_graphql_request(
     ))
 }
 
-async fn get_repo_id(gql_client: &Client) -> Result<cynic::Id, Box<dyn Error>> {
-    let repo_resp: Value = gql_client
+async fn get_repo_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Error>> {
+    let repo_resp: Value = clients
+        .gql
         .get(format!(
-            "https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}"
+            "{}/repos/{}/{}",
+            clients.github_rest_url, clients.repo_owner, clients.repo_name
         ))
         .send()
         .await?
@@ -43,14 +51,15 @@ async fn get_repo_id(gql_client: &Client) -> Result<cynic::Id, Box<dyn Error>> {
     Ok(repo_resp["id"].as_str().unwrap().into())
 }
 
-async fn get_category_id(gql_client: &Client) -> Result<cynic::Id, Box<dyn Error>> {
+async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Error>> {
     let category_query = CategoryQuery::build(CategoryQueryVariables {
-        owner: REPO_OWNER,
-        repo_name: REPO_NAME,
+        owner: &clients.repo_owner,
+        repo_name: &clients.repo_name,
     });
 
-    let category_resp = gql_client
-        .post(GITHUB_GQL_API)
+    let category_resp = clients
+        .gql
+        .post(&clients.github_gql_url)
         .run_graphql(category_query)
         .await?;
 
@@ -66,16 +75,15 @@ async fn get_category_id(gql_client: &Client) -> Result<cynic::Id, Box<dyn Error
             .into_iter()
             .flatten()
         {
-            if cat_edge.node.as_ref().unwrap().name == CATEGORY_NAME {
+            if cat_edge.node.as_ref().unwrap().name == clients.discussion_category {
                 return Ok(cat_edge.node.unwrap().id);
             }
         }
-        panic!("Category {CATEGORY_NAME} was not present in repository {REPO_OWNER}/{REPO_NAME}")
+        panic!(
+            "Category {} was not present in repository {}/{}",
+            clients.discussion_category, clients.repo_owner, clients.repo_name
+        )
     } else {
         panic!("No discussion categories found!");
     }
-}
-
-pub async fn discussion_exists(gql_client: &Client, url: &Url) -> bool {
-
 }
