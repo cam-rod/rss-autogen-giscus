@@ -55,6 +55,7 @@ pub struct DiscussionConnection {
 #[derive(cynic::QueryFragment, Debug)]
 pub struct DiscussionEdge {
     pub node: Option<Discussion>,
+    pub cursor: String,
 }
 
 // query CategoryQuery
@@ -75,7 +76,7 @@ pub struct CategoryQuery {
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Repository")]
 pub struct CategoryQueryRepository {
-    #[arguments(first: 20)]
+    #[arguments(first: 50)]
     pub discussion_categories: DiscussionCategoryConnection,
 }
 
@@ -88,6 +89,7 @@ pub struct DiscussionCategoryConnection {
 #[derive(cynic::QueryFragment, Debug)]
 pub struct DiscussionCategoryEdge {
     pub node: Option<DiscussionCategory>,
+    pub cursor: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
