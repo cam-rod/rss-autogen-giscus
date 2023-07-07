@@ -1,18 +1,18 @@
-use std::env;
-use std::error::Error;
-use std::time::Duration;
-
-use cynic::http::ReqwestExt;
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION};
-use reqwest::Client;
-use url::Url;
-
-use gql::create_graphql_request;
-pub use gql::discussion_exists;
-pub use post::{latest_post, post_description};
-
 mod gql;
 mod post;
+
+use std::{env, error::Error, time::Duration};
+
+use cynic::http::ReqwestExt;
+use reqwest::{
+    header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION},
+    Client,
+};
+
+pub use gql::discussion_exists;
+pub use post::{get_latest_post, Post};
+
+use gql::create_graphql_request;
 
 pub struct HttpClients {
     pub html: Client,
@@ -57,14 +57,8 @@ pub fn create_clients() -> HttpClients {
     }
 }
 
-pub async fn create_discussion(
-    clients: &HttpClients,
-    post_url: Url,
-    post_desc: String,
-) -> Result<(), Box<dyn Error>> {
-    let create_disc_vars = create_graphql_request(clients, &post_url, post_desc)
-        .await
-        .unwrap();
+pub async fn create_discussion(clients: &HttpClients, post: Post) -> Result<(), Box<dyn Error>> {
+    let create_disc_vars = create_graphql_request(clients, &post).await.unwrap();
     let create_disc_resp = clients
         .gql
         .post(&clients.github_gql_url)
@@ -73,7 +67,7 @@ pub async fn create_discussion(
 
     if let Some(create_disc_data) = create_disc_resp.data {
         if let Some(discussion_info) = create_disc_data.create_discussion.unwrap().discussion {
-            if discussion_info.title == post_url.path() {
+            if discussion_info.title == post.url.path() {
                 println!(
                     "Successfully created new discussion at {} ({})",
                     String::from(discussion_info.url),

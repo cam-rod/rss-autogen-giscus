@@ -1,13 +1,18 @@
 use std::ops::Deref;
 
 use feed_rs::parser::parse;
-use reqwest::Client;
 use scraper::{Html, Selector};
 use url::Url;
 
 use super::HttpClients;
 
-pub async fn latest_post(clients: &HttpClients) -> reqwest::Result<Url> {
+pub struct Post {
+    pub title: Option<String>,
+    pub description: String,
+    pub url: Url,
+}
+
+async fn latest_post_from_rss(clients: &HttpClients) -> reqwest::Result<Url> {
     let rss_response = clients
         .html
         .get(&clients.website_rss_url) // https://www.wildfly.org/feed.xml
@@ -29,18 +34,37 @@ pub async fn latest_post(clients: &HttpClients) -> reqwest::Result<Url> {
     .unwrap())
 }
 
-pub async fn post_description(html_client: &Client, post_url: &str) -> reqwest::Result<String> {
+pub async fn get_latest_post(clients: &HttpClients) -> reqwest::Result<Post> {
+    let post_url = latest_post_from_rss(clients).await?;
+
     let desc_selector = Selector::parse("meta[name=\"description\"]").unwrap();
-    let post = Html::parse_document(&html_client.get(post_url).send().await?.text().await?);
+    let title_selector = Selector::parse("title").unwrap();
+    let post = Html::parse_document(
+        &clients
+            .html
+            .get(post_url.clone())
+            .send()
+            .await?
+            .text()
+            .await?,
+    );
 
     let desc_element = post
         .select(&desc_selector)
         .next()
         .expect("Could not find 'meta' element with name 'description'");
+    let title_element = post.select(&title_selector).next();
 
-    Ok(desc_element
-        .value()
-        .attr("content")
-        .expect("Invalid formatting for 'name' meta tag")
-        .to_string())
+    Ok(Post {
+        title: match title_element {
+            Some(title) => Some(title.text().collect::<Vec<_>>().join("")),
+            None => None,
+        },
+        description: desc_element
+            .value()
+            .attr("content")
+            .expect("Invalid formatting for 'name' meta tag")
+            .to_string(),
+        url: post_url,
+    })
 }

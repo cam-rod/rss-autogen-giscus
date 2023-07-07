@@ -105,7 +105,7 @@ pub struct CreateCommentsDiscussionVariables {
     pub repo_id: cynic::Id,
     pub cat_id: cynic::Id,
     pub desc: String,
-    pub post_rel_path: String,
+    pub title: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -114,7 +114,7 @@ pub struct CreateCommentsDiscussionVariables {
     variables = "CreateCommentsDiscussionVariables"
 )]
 pub struct CreateCommentsDiscussion {
-    #[arguments(input: { body: $desc, categoryId: $cat_id, repositoryId: $repo_id, title: $post_rel_path })]
+    #[arguments(input: { body: $desc, categoryId: $cat_id, repositoryId: $repo_id, title: $title })]
     pub create_discussion: Option<CreateDiscussionPayload>,
 }
 
@@ -131,14 +131,16 @@ impl From<Uri> for String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use cynic::{MutationBuilder, QueryBuilder};
+
+    use super::schema;
 
     const REPO_OWNER: &str = "team-role-org-testing";
     const REPO_NAME: &str = "team-role-org-testing.github.io";
 
     #[test]
     fn discussion_exists_output() {
-        use cynic::QueryBuilder;
+        use super::{DiscussionExists, DiscussionExistsVariables};
 
         let discussion_exists_op = DiscussionExists::build(DiscussionExistsVariables {
             owner: REPO_OWNER,
@@ -149,7 +151,7 @@ mod tests {
 
     #[test]
     fn category_query_output() {
-        use cynic::QueryBuilder;
+        use super::{CategoryQuery, CategoryQueryVariables};
 
         let category_query_op = CategoryQuery::build(CategoryQueryVariables {
             owner: REPO_OWNER,
@@ -160,13 +162,13 @@ mod tests {
 
     #[test]
     fn create_comments_discussion_output() {
-        use cynic::MutationBuilder;
+        use super::{CreateCommentsDiscussion, CreateCommentsDiscussionVariables};
 
         let create_comments_discussion_op =
             CreateCommentsDiscussion::build(CreateCommentsDiscussionVariables {
                 cat_id: "DIC_kwDOJSVgjc4CVgpt".into(),
                 desc: "Here is the description of a future post".to_string(),
-                post_rel_path: "/blog/most-recent-post.txt".to_string(),
+                title: "/blog/most-recent-post.txt".to_string(),
                 repo_id: "623206541".into(),
             });
 
