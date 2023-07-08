@@ -10,7 +10,7 @@ use reqwest::{
 };
 
 pub use gql::discussion_exists;
-pub use post::{get_latest_post, Post};
+pub use post::Post;
 
 use gql::create_graphql_request;
 
@@ -26,34 +26,36 @@ pub struct HttpClients {
     pub repo_name: String,
 }
 
-pub fn create_clients() -> HttpClients {
-    let token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN env var is required");
-    let mut gh_headers = HeaderMap::new();
-    gh_headers.insert(AUTHORIZATION, HeaderValue::from_str(&token).unwrap());
-    gh_headers.insert(
-        ACCEPT,
-        HeaderValue::from_static("application/vnd.github+json"),
-    );
+impl HttpClients {
+    pub fn init() -> Self {
+        let token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN env var is required");
+        let mut gh_headers = HeaderMap::new();
+        gh_headers.insert(AUTHORIZATION, HeaderValue::from_str(&token).unwrap());
+        gh_headers.insert(
+            ACCEPT,
+            HeaderValue::from_static("application/vnd.github+json"),
+        );
 
-    HttpClients {
-        html: Client::builder()
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) rss-autogen-giscus/0.1.0 Chrome/113.0.0.0 Safari/537.36")
-            .timeout(Duration::from_secs(60))
-            .build()
-            .expect("Unable to build REST client"),
-        gql: Client::builder()
-            .timeout(Duration::from_secs(60))
-            .default_headers(gh_headers)
-            .build()
-            .expect("Unable to build GraphQL client"),
-        // https://team-role-org-testing.github.io/feed.xml, category Blogs
-        website_rss_url: env::var("WEBSITE_RSS_URL").expect("WEBSITE_BASE_URL env var is required"),
+        Self {
+            html: Client::builder()
+                .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) rss-autogen-giscus/0.1.0 Chrome/113.0.0.0 Safari/537.36")
+                .timeout(Duration::from_secs(60))
+                .build()
+                .expect("Unable to build REST client"),
+            gql: Client::builder()
+                .timeout(Duration::from_secs(60))
+                .default_headers(gh_headers)
+                .build()
+                .expect("Unable to build GraphQL client"),
+            // https://team-role-org-testing.github.io/feed.xml, category Blogs
+            website_rss_url: env::var("WEBSITE_RSS_URL").expect("WEBSITE_BASE_URL env var is required"),
 
-        github_rest_url: env::var("GITHUB_API_URl").unwrap_or("https://api.github.com".to_string()),
-        github_gql_url: env::var("GITHUB_GRAPHQL_URL").unwrap_or("https://api.github.com/graphql".to_string()),
-        discussion_category: env::var("DISCUSSION_CATEGORY").expect("DISCUSSION_CATEGORY env var is required"),
-        repo_owner: env::var("GITHUB_REPOSITORY_OWNER").expect("Repo owner was not found (GITHUB_REPOSITORY_OWNER)"),
-        repo_name: env::var("GITHUB_REPOSITORY").unwrap().split_once('/').expect("Not a valid repo/name string").1.into()
+            github_rest_url: env::var("GITHUB_API_URl").unwrap_or("https://api.github.com".to_string()),
+            github_gql_url: env::var("GITHUB_GRAPHQL_URL").unwrap_or("https://api.github.com/graphql".to_string()),
+            discussion_category: env::var("DISCUSSION_CATEGORY").expect("DISCUSSION_CATEGORY env var is required"),
+            repo_owner: env::var("GITHUB_REPOSITORY_OWNER").expect("Repo owner was not found (GITHUB_REPOSITORY_OWNER)"),
+            repo_name: env::var("GITHUB_REPOSITORY").unwrap().split_once('/').expect("Not a valid repo/name string").1.into()
+        }
     }
 }
 

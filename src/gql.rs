@@ -12,7 +12,7 @@ use gql_structs::{
     CreateCommentsDiscussionVariables,
 };
 
-pub async fn discussion_exists(clients: &HttpClients, post_url: &Url) -> bool {
+pub async fn discussion_exists(clients: &HttpClients, post: &Post) -> bool {
     todo!()
 }
 
