@@ -60,26 +60,28 @@ impl HttpClients {
 }
 
 pub async fn create_discussion(clients: &HttpClients, post: Post) -> Result<(), Box<dyn Error>> {
-    let create_disc_vars = create_graphql_request(clients, &post).await.unwrap();
+    let create_disc_op = create_graphql_request(clients, &post).await.unwrap();
     let create_disc_resp = clients
         .gql
         .post(&clients.github_gql_url)
-        .run_graphql(create_disc_vars)
+        .run_graphql(create_disc_op)
         .await?;
 
-    if let Some(create_disc_data) = create_disc_resp.data {
-        if let Some(discussion_info) = create_disc_data.create_discussion.unwrap().discussion {
-            if discussion_info.title == post.url.path() {
-                println!(
-                    "Successfully created new discussion at {} ({})",
-                    String::from(discussion_info.url),
-                    discussion_info.title
-                )
-            }
+    if let Some(discussion_info) = create_disc_resp
+        .data
+        .and_then(|d| d.create_discussion)
+        .and_then(|payload| payload.discussion)
+    {
+        if discussion_info.title == post.url.path() {
+            println!(
+                "Successfully created new discussion at {} ({})",
+                String::from(discussion_info.url),
+                discussion_info.title
+            )
         }
     } else {
         panic!(
-            "Discussion could not be generated. GraphQL response: \n{:#?}",
+            "Discussion could not be generated. GraphQL errors: \n{:#?}",
             create_disc_resp.errors
         );
     }

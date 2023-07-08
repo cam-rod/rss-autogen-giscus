@@ -2,7 +2,7 @@ mod gql_structs;
 
 use std::error::Error;
 
-use cynic::{http::ReqwestExt, MutationBuilder, Operation, QueryBuilder};
+use cynic::{http::ReqwestExt, Operation};
 use serde_json::Value;
 
 use crate::{HttpClients, Post};
@@ -21,14 +21,16 @@ pub async fn create_graphql_request(
     post: &Post,
 ) -> Result<Operation<CreateCommentsDiscussion, CreateCommentsDiscussionVariables>, Box<dyn Error>>
 {
+    use cynic::MutationBuilder;
+
     let repo_id = get_repo_id(clients).await?;
     let cat_id = get_category_id(clients).await?;
 
-    let full_desc = String::from_iter(vec![
-        String::from(&post.description),
-        "\n\n".to_string(),
-        post.url.to_string(),
-    ]);
+    let mut full_desc = post.url.to_string();
+    if let Some(mut post_desc) = post.description.clone() {
+        post_desc.push_str("\n\n");
+        full_desc.insert_str(0, post_desc.as_str());
+    }
 
     Ok(CreateCommentsDiscussion::build(
         CreateCommentsDiscussionVariables {
@@ -55,6 +57,8 @@ async fn get_repo_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Error>>
 }
 
 async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Error>> {
+    use cynic::QueryBuilder;
+
     let category_query = CategoryQuery::build(CategoryQueryVariables {
         owner: &clients.repo_owner,
         repo_name: &clients.repo_name,
@@ -66,24 +70,28 @@ async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Err
         .run_graphql(category_query)
         .await?;
 
-    if category_resp.errors.is_none() {
-        for cat_edge in category_resp
-            .data
-            .unwrap()
-            .repository
-            .unwrap()
-            .discussion_categories
-            .edges
+    if let Some(categories) = category_resp
+        .data
+        .and_then(|d| d.repository)
+        .map(|repo| repo.discussion_categories.edges)
+    {
+        match categories
+            .iter()
+            .flat_map(|c| &c.node)
+            .find(|cat| cat.name == clients.discussion_category)
         {
-            if cat_edge.node.as_ref().unwrap().name == clients.discussion_category {
-                return Ok(cat_edge.node.unwrap().id);
+            Some(matching_cat) => Ok(matching_cat.name.clone().into()),
+            None => {
+                panic!(
+                    "Category {} was not present in repository {}/{}",
+                    clients.discussion_category, clients.repo_owner, clients.repo_name
+                );
             }
         }
-        panic!(
-            "Category {} was not present in repository {}/{}",
-            clients.discussion_category, clients.repo_owner, clients.repo_name
-        )
     } else {
-        panic!("No discussion categories found!");
+        panic!(
+            "No discussion categories found! GraphQL errors:\n{:#?}",
+            category_resp.errors.unwrap()
+        );
     }
 }
