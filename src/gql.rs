@@ -4,7 +4,6 @@ use std::error::Error;
 
 use cynic::{http::ReqwestExt, MutationBuilder, Operation, QueryBuilder};
 use serde_json::Value;
-use url::Url;
 
 use crate::{HttpClients, Post};
 use gql_structs::{
@@ -75,9 +74,6 @@ async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Err
             .unwrap()
             .discussion_categories
             .edges
-            .unwrap()
-            .into_iter()
-            .flatten()
         {
             if cat_edge.node.as_ref().unwrap().name == clients.discussion_category {
                 return Ok(cat_edge.node.unwrap().id);

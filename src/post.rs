@@ -13,7 +13,7 @@ pub struct Post {
 }
 
 impl Post {
-    pub async fn get_latest() -> reqwest::Result<Self> {
+    pub async fn get_latest(clients: &HttpClients) -> reqwest::Result<Self> {
         let post_url = latest_post_from_rss(clients).await?;
 
         let desc_selector = Selector::parse("meta[name=\"description\"]").unwrap();
@@ -35,10 +35,7 @@ impl Post {
         let title_element = post.select(&title_selector).next();
 
         Ok(Self {
-            title: match title_element {
-                Some(title) => Some(title.text().collect::<Vec<_>>().join("")),
-                None => None,
-            },
+            title: title_element.map(|title| title.text().collect::<Vec<_>>().join("")),
             description: desc_element
                 .value()
                 .attr("content")

@@ -48,7 +48,8 @@ pub struct DiscussionExistsRepository {
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct DiscussionConnection {
-    pub edges: Option<Vec<Option<DiscussionEdge>>>,
+    #[cynic(flatten)]
+    pub edges: Vec<DiscussionEdge>,
     pub page_info: PageInfo,
 }
 
@@ -82,7 +83,8 @@ pub struct CategoryQueryRepository {
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct DiscussionCategoryConnection {
-    pub edges: Option<Vec<Option<DiscussionCategoryEdge>>>,
+    #[cynic(flatten)]
+    pub edges: Vec<DiscussionCategoryEdge>,
     pub page_info: PageInfo,
 }
 
@@ -133,6 +135,7 @@ impl From<Uri> for String {
 mod tests {
     use cynic::{MutationBuilder, QueryBuilder};
 
+    #[allow(unused_imports)]
     use super::schema;
 
     const REPO_OWNER: &str = "team-role-org-testing";
