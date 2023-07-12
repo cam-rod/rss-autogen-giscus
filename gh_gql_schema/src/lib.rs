@@ -112,8 +112,8 @@ pub struct CreateCommentsDiscussionVariables {
 
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(
-    graphql_type = "Mutation",
-    variables = "CreateCommentsDiscussionVariables"
+graphql_type = "Mutation",
+variables = "CreateCommentsDiscussionVariables"
 )]
 pub struct CreateCommentsDiscussion {
     #[arguments(input: { body: $desc, categoryId: $cat_id, repositoryId: $repo_id, title: $title })]
@@ -142,17 +142,6 @@ mod tests {
     const REPO_NAME: &str = "team-role-org-testing.github.io";
 
     #[test]
-    fn discussion_exists_output() {
-        use super::{DiscussionExists, DiscussionExistsVariables};
-
-        let discussion_exists_op = DiscussionExists::build(DiscussionExistsVariables {
-            owner: REPO_OWNER,
-            repo_name: REPO_NAME,
-        });
-        print!("{}", discussion_exists_op.query);
-    }
-
-    #[test]
     fn category_query_output() {
         use super::{CategoryQuery, CategoryQueryVariables};
 
@@ -161,6 +150,17 @@ mod tests {
             repo_name: REPO_NAME,
         });
         print!("{}", category_query_op.query);
+    }
+
+    #[test]
+    fn discussion_exists_output() {
+        use super::{DiscussionExists, DiscussionExistsVariables};
+
+        let discussion_exists_op = DiscussionExists::build(DiscussionExistsVariables {
+            owner: REPO_OWNER,
+            repo_name: REPO_NAME,
+        });
+        print!("{}", discussion_exists_op.query);
     }
 
     #[test]

@@ -9,10 +9,9 @@ use reqwest::{
     Client,
 };
 
-pub use gql::discussion_exists;
 pub use post::Post;
 
-use gql::create_graphql_request;
+use gql::{create_graphql_request, discussion_exists};
 
 pub struct HttpClients {
     pub html: Client,
@@ -59,8 +58,19 @@ impl HttpClients {
     }
 }
 
-pub async fn create_discussion(clients: &HttpClients, post: Post) -> Result<(), Box<dyn Error>> {
-    let create_disc_op = create_graphql_request(clients, &post).await.unwrap();
+pub async fn create_discussion(clients: HttpClients, post: Post) -> Result<(), Box<dyn Error>> {
+    let is_existing_discussion = discussion_exists(&clients, &post).await?;
+
+    if is_existing_discussion.is_some() {
+        eprintln!(
+            "Discussion was not created for {} - an existing discussion was found at {}",
+            &post.url,
+            is_existing_discussion.unwrap()
+        );
+        return Ok(());
+    }
+
+    let create_disc_op = create_graphql_request(&clients, &post).await.unwrap();
     let create_disc_resp = clients
         .gql
         .post(&clients.github_gql_url)

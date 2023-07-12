@@ -1,0 +1,13 @@
+[package]
+name = "gh_gql_schema"
+version = "0.1.0"
+authors = ["Cameron Rodriguez <dev@camrod.me>"]
+edition = "2021"
+description = "Crate with GitHub GraphQL API"
+license = "Apache-2.0"
+
+[dependencies]
+cynic = { version = "3", features = ["rkyv"] }
+
+[build-dependencies]
+cynic-codegen = "3"

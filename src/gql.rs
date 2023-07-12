@@ -1,16 +1,14 @@
-mod gql_structs;
-
 use std::error::Error;
 
+use chrono::{Duration, Utc};
 use cynic::{http::ReqwestExt, Operation};
 use serde_json::Value;
 
 use crate::{HttpClients, Post};
-use gql_structs::{
+use gh_gql_schema::{
     CategoryQuery, CategoryQueryVariables, CreateCommentsDiscussion,
-    CreateCommentsDiscussionVariables,
+    CreateCommentsDiscussionVariables, DiscussionExists, DiscussionExistsVariables,
 };
-use crate::gql::gql_structs::{DiscussionExists, DiscussionExistsVariables};
 
 // TODO: actually make these commands go through each page
 pub async fn create_graphql_request(
@@ -93,11 +91,53 @@ async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Err
     }
 }
 
-pub async fn discussion_exists(clients: &HttpClients, post: &Post) -> bool {
+pub async fn discussion_exists(
+    clients: &HttpClients,
+    post: &Post,
+) -> Result<Option<String>, Box<dyn Error>> {
+    use cynic::QueryBuilder;
+
+    let current_time = Utc::now();
+    let max_lookback = Duration::days(7);
+
     let discussion_exists_query = DiscussionExists::build(DiscussionExistsVariables {
         owner: &clients.repo_owner,
-        repo_name: &clients.repo_name
+        repo_name: &clients.repo_name,
     });
 
-    todo!()
+    let discussion_exists_resp = clients
+        .gql
+        .post(&clients.github_gql_url)
+        .run_graphql(discussion_exists_query)
+        .await?;
+
+    if discussion_exists_resp.errors.is_none() {
+        for discussion in discussion_exists_resp
+            .data
+            .and_then(|data| data.repository)
+            .map(|repo| repo.discussions.edges)
+            .unwrap()
+            .iter()
+            .filter_map(|edge| edge.node.as_ref())
+        {
+            // Don't check for discussions older than 7 days
+            if discussion
+                .created_at
+                .0
+                .parse::<chrono::DateTime<Utc>>()
+                .unwrap()
+                - current_time
+                > max_lookback
+            {
+                return Ok(None);
+            } else if Some(&discussion.title) == post.title.as_ref() {
+                return Ok(Some(discussion.url.0.clone()));
+            }
+        }
+    }
+
+    panic!(
+        "Unable to query existing repos. GraphQL errors: \n{:#?}",
+        discussion_exists_resp.errors
+    );
 }

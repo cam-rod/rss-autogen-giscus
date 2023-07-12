@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/rss-autogen-giscus.iml" filepath="$PROJECT_DIR$/rss-autogen-giscus.iml" />
+      <module fileurl="file://$PROJECT_DIR$/rss_autogen_giscus.iml" filepath="$PROJECT_DIR$/rss_autogen_giscus.iml" />
     </modules>
   </component>
 </project>
