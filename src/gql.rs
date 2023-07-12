@@ -1,8 +1,10 @@
-use std::error::Error;
+use std::sync::Arc;
 
 use chrono::{Duration, Utc};
+use cynic::http::CynicReqwestError;
 use cynic::{http::ReqwestExt, Operation};
 use serde_json::Value;
+use tokio::task::spawn;
 
 use crate::{HttpClients, Post};
 use gh_gql_schema::{
@@ -12,14 +14,13 @@ use gh_gql_schema::{
 
 // TODO: actually make these commands go through each page
 pub async fn create_graphql_request(
-    clients: &HttpClients,
-    post: &Post,
-) -> Result<Operation<CreateCommentsDiscussion, CreateCommentsDiscussionVariables>, Box<dyn Error>>
-{
+    clients: Arc<HttpClients>,
+    post: Arc<Post>,
+) -> Operation<CreateCommentsDiscussion, CreateCommentsDiscussionVariables> {
     use cynic::MutationBuilder;
 
-    let repo_id = get_repo_id(clients).await?;
-    let cat_id = get_category_id(clients).await?;
+    let repo_id = spawn(get_repo_id(Arc::clone(&clients)));
+    let cat_id = spawn(get_category_id(Arc::clone(&clients)));
 
     let mut full_desc = post.url.to_string();
     if let Some(mut post_desc) = post.description.clone() {
@@ -27,17 +28,15 @@ pub async fn create_graphql_request(
         full_desc.insert_str(0, post_desc.as_str());
     }
 
-    Ok(CreateCommentsDiscussion::build(
-        CreateCommentsDiscussionVariables {
-            repo_id,
-            cat_id,
-            desc: full_desc,
-            title: post.url.path().to_string(),
-        },
-    ))
+    CreateCommentsDiscussion::build(CreateCommentsDiscussionVariables {
+        repo_id: repo_id.await.unwrap().unwrap(),
+        cat_id: cat_id.await.unwrap().unwrap(),
+        desc: full_desc,
+        title: post.url.path().to_string(),
+    })
 }
 
-async fn get_repo_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Error>> {
+async fn get_repo_id(clients: Arc<HttpClients>) -> reqwest::Result<cynic::Id> {
     let repo_resp: Value = clients
         .gql
         .get(format!(
@@ -51,7 +50,7 @@ async fn get_repo_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Error>>
     Ok(repo_resp["id"].as_str().unwrap().into())
 }
 
-async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Error>> {
+async fn get_category_id(clients: Arc<HttpClients>) -> Result<cynic::Id, CynicReqwestError> {
     use cynic::QueryBuilder;
 
     let category_query = CategoryQuery::build(CategoryQueryVariables {
@@ -92,9 +91,9 @@ async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Err
 }
 
 pub async fn discussion_exists(
-    clients: &HttpClients,
-    post: &Post,
-) -> Result<Option<String>, Box<dyn Error>> {
+    clients: Arc<HttpClients>,
+    post: Arc<Post>,
+) -> Result<Option<String>, CynicReqwestError> {
     use cynic::QueryBuilder;
 
     let current_time = Utc::now();

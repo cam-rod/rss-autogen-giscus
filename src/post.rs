@@ -1,5 +1,6 @@
 use feed_rs::parser::parse;
 use scraper::{Html, Selector};
+use std::sync::Arc;
 use url::Url;
 
 use crate::HttpClients;
@@ -11,7 +12,7 @@ pub struct Post {
 }
 
 impl Post {
-    pub async fn get_latest(clients: &HttpClients) -> reqwest::Result<Self> {
+    pub async fn get_latest(clients: &HttpClients) -> reqwest::Result<Arc<Self>> {
         let post_url = latest_post_from_rss(clients).await?;
 
         let desc_selector = Selector::parse("meta[name=\"description\"]").unwrap();
@@ -29,13 +30,13 @@ impl Post {
         let desc_element = post.select(&desc_selector).next();
         let title_element = post.select(&title_selector).next();
 
-        Ok(Self {
+        Ok(Arc::new(Self {
             title: title_element.map(|title| title.text().collect::<Vec<_>>().join("")),
             description: desc_element
                 .and_then(|el| el.value().attr("content"))
                 .map(|desc| desc.to_string()),
             url: post_url,
-        })
+        }))
     }
 }
 

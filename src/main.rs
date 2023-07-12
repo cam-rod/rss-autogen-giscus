@@ -1,18 +1,18 @@
 //! Autogenerates GitHub Discussions to be used by Giscus.
 //!
-//! This came out of a preference for a way to use Giscus, without requiring users to authenticate
+//! This came from a need to support Giscus without requiring users to authenticate
 //! with the app. Since the discussion isn't created until someone comments, we needed a way to
 //! automatically create it once a blog post was uploaded.
 //!
-//! This crate checks for the latest post via the RSS feed, and then extracts the contents needed to
+//! This crate checks for the latest post in the blog's RSS feed, and then extracts the contents needed to
 //! to create a post, formatted as follows:
 //!
 //! - **Title**: URL path of the post (not including base URL)
-//! - **Description**: (potentially) First paragraph of the post, followed by a full link
+//! - **Description**: First paragraph of the post, followed by a full link
 //!
 //! This crate works best when run as a GitHub Action, triggered by the completion of the
-//! `pages-build-deployment` action for GitHub pages. It depends on the RSS feed being up-to-date at the time
-//! of running, so you may need to introduce a delay.
+//! `pages-build-deployment` action for GitHub pages. Since the RSS feed must be up-to-date at runtime,
+//! you may need to introduce a delay.
 
 use std::error::Error;
 

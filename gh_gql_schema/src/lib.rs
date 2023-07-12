@@ -112,8 +112,8 @@ pub struct CreateCommentsDiscussionVariables {
 
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(
-graphql_type = "Mutation",
-variables = "CreateCommentsDiscussionVariables"
+    graphql_type = "Mutation",
+    variables = "CreateCommentsDiscussionVariables"
 )]
 pub struct CreateCommentsDiscussion {
     #[arguments(input: { body: $desc, categoryId: $cat_id, repositoryId: $repo_id, title: $title })]
