@@ -24,41 +24,6 @@ pub struct PageInfo {
     pub has_next_page: bool,
 }
 
-// query DiscussionExists
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct DiscussionExistsVariables<'a> {
-    pub owner: &'a str,
-    pub repo_name: &'a str,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query", variables = "DiscussionExistsVariables")]
-pub struct DiscussionExists {
-    #[arguments(owner: $owner, name: $repo_name)]
-    pub repository: Option<DiscussionExistsRepository>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Repository")]
-pub struct DiscussionExistsRepository {
-    #[arguments(orderBy: { direction: "DESC", field: "CREATED_AT" }, first: 50)]
-    pub discussions: DiscussionConnection,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct DiscussionConnection {
-    #[cynic(flatten)]
-    pub edges: Vec<DiscussionEdge>,
-    pub page_info: PageInfo,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct DiscussionEdge {
-    pub node: Option<Discussion>,
-    pub cursor: String,
-}
-
 // query CategoryQuery
 
 #[derive(cynic::QueryVariables, Debug)]
@@ -98,6 +63,41 @@ pub struct DiscussionCategoryEdge {
 pub struct DiscussionCategory {
     pub id: cynic::Id,
     pub name: String,
+}
+
+// query DiscussionExists
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct DiscussionExistsVariables<'a> {
+    pub owner: &'a str,
+    pub repo_name: &'a str,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Query", variables = "DiscussionExistsVariables")]
+pub struct DiscussionExists {
+    #[arguments(owner: $owner, name: $repo_name)]
+    pub repository: Option<DiscussionExistsRepository>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Repository")]
+pub struct DiscussionExistsRepository {
+    #[arguments(orderBy: { direction: "DESC", field: "CREATED_AT" }, first: 50)]
+    pub discussions: DiscussionConnection,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct DiscussionConnection {
+    #[cynic(flatten)]
+    pub edges: Vec<DiscussionEdge>,
+    pub page_info: PageInfo,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct DiscussionEdge {
+    pub node: Option<Discussion>,
+    pub cursor: String,
 }
 
 // mutation CreateCommentsDiscussion

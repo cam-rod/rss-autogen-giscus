@@ -10,10 +10,7 @@ use gql_structs::{
     CategoryQuery, CategoryQueryVariables, CreateCommentsDiscussion,
     CreateCommentsDiscussionVariables,
 };
-
-pub async fn discussion_exists(clients: &HttpClients, post: &Post) -> bool {
-    todo!()
-}
+use crate::gql::gql_structs::{DiscussionExists, DiscussionExistsVariables};
 
 // TODO: actually make these commands go through each page
 pub async fn create_graphql_request(
@@ -94,4 +91,13 @@ async fn get_category_id(clients: &HttpClients) -> Result<cynic::Id, Box<dyn Err
             category_resp.errors.unwrap()
         );
     }
+}
+
+pub async fn discussion_exists(clients: &HttpClients, post: &Post) -> bool {
+    let discussion_exists_query = DiscussionExists::build(DiscussionExistsVariables {
+        owner: &clients.repo_owner,
+        repo_name: &clients.repo_name
+    });
+
+    todo!()
 }
